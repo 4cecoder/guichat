@@ -21,7 +21,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Unable to create window:", err)
 	}
-	win.SetTitle("Cute Chat Program 😺💬")
+	win.SetTitle("Cute Cat Chat 😺💬")
 	win.SetDefaultSize(450, 600)
 
 	vbox, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 5)
