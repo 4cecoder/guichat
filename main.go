@@ -5,14 +5,17 @@ import (
 	"log"
 	"os"
 	"strings"
+	"strconv"
 
 	"github.com/gotk3/gotk3/gtk"
+	//"github.com/gotk3/gotk3/pango"
 )
 
 const historyFilename = "chat_history.txt"
 
 var username string = "Anonymous"
 var serverAddress string = ""
+var fontSize int = 10 // This is in points
 
 func main() {
 	gtk.Init(nil)
@@ -35,7 +38,30 @@ func main() {
 	}
 	textview.SetEditable(false)
 	textview.SetCursorVisible(false)
-	vbox.PackStart(textview, true, true, 0)
+	textview.SetWrapMode(gtk.WRAP_WORD_CHAR)
+
+	// Apply font size using CSS
+	cssProvider, err := gtk.CssProviderNew()
+	if err != nil {
+		log.Fatal("Unable to create css provider:", err)
+	}
+	err = cssProvider.LoadFromData("* { font-size: " + strconv.Itoa(fontSize) + "pt; }")
+	if err != nil {
+		log.Fatal("Unable to load css data:", err)
+	}
+	context, err := textview.GetStyleContext()
+	if err != nil {
+		log.Fatal("Unable to get style context:", err)
+	}
+	context.AddProvider(cssProvider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+	scrolledWindow, err := gtk.ScrolledWindowNew(nil, nil)
+	if err != nil {
+		log.Fatal("Unable to create scrolled window:", err)
+	}
+	scrolledWindow.SetPolicy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+	scrolledWindow.Add(textview)
+	vbox.PackStart(scrolledWindow, true, true, 0)
 
 	buffer, err := textview.GetBuffer()
 	if err != nil {
@@ -92,6 +118,16 @@ func main() {
 		serverAddressEntry.SetText(serverAddress)
 		contentArea.PackStart(serverAddressEntry, true, true, 0)
 
+		fontSizeAdjustment, err := gtk.AdjustmentNew(float64(fontSize), 8, 72, 1, 5, 0)
+		if err != nil {
+			log.Fatal("Unable to create font size adjustment:", err)
+		}
+		fontSizeSpinButton, err := gtk.SpinButtonNew(fontSizeAdjustment, 1, 0)
+		if err != nil {
+			log.Fatal("Unable to create font size spin button:", err)
+		}
+		contentArea.PackStart(fontSizeSpinButton, true, true, 0)
+
 		clearHistoryButton, err := gtk.ButtonNewWithLabel("Clear History")
 		if err != nil {
 			log.Fatal("Unable to create clear history button:", err)
@@ -123,6 +159,14 @@ func main() {
 			if newServerAddress != "" {
 				serverAddress = newServerAddress
 			}
+			newFontSize := int(fontSizeSpinButton.GetValue())
+			if newFontSize != fontSize {
+				fontSize = newFontSize
+				err = cssProvider.LoadFromData("* { font-size: " + strconv.Itoa(fontSize) + "pt; }")
+				if err != nil {
+					log.Fatal("Unable to load css data:", err)
+				}
+			}
 			dialog.Destroy()
 		})
 		contentArea.PackStart(okButton, false, false, 0)
@@ -149,3 +193,4 @@ func main() {
 
 	gtk.Main()
 }
+
